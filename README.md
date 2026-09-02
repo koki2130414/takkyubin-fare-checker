@@ -1,5 +1,7 @@
 # かんたん宅急便送料チェック（非公式）
 
+**公開URL: https://koki2130414.github.io/takkyubin-fare-checker/**
+
 栃木県下野市から発送する場合の、ヤマト運輸「宅急便」の**基本運賃の目安**を確認できる
 Web サイトです。購入者がお届け先（都道府県）と荷物のサイズ・重量・個数を入力すると、
 税込の送料目安を表示します。
@@ -67,6 +69,20 @@ npm run build
 静的ファイルが `out/` に出力されます。ローカルで確認する場合は、任意の静的サーバーで
 `out/` を配信してください（例: `npx serve out`）。
 
+## GitHub Pages へのデプロイ方法
+
+`main` ブランチへ push すると、GitHub Actions（`.github/workflows/deploy.yml`）が
+lint・型チェック・テスト・ビルドを実行し、`out/` を GitHub Pages へ自動デプロイします。
+
+初回のみ、リポジトリの **Settings → Pages → Build and deployment → Source** を
+**GitHub Actions** に設定してください。
+
+サブパス（`/takkyubin-fare-checker/`）で配信するため、ワークフロー内でビルド時に
+`NEXT_PUBLIC_BASE_PATH=/takkyubin-fare-checker` を指定しています。
+リポジトリ名を変更した場合は、`.github/workflows/deploy.yml` のこの値も合わせて
+変更してください。ローカル開発時はこの環境変数を指定しないため、`http://localhost:3000/`
+のままルート配信で動作します。
+
 ## Vercel へのデプロイ方法
 
 1. このリポジトリを GitHub などに push する
@@ -77,7 +93,7 @@ npm run build
 5. 「Deploy」を押す
 
 `next.config.ts` で `output: "export"` を指定しているため、静的サイトとして配信されます。
-サーバー側の処理も環境変数もないため、追加設定は不要です。
+Vercel はルート配信なので `NEXT_PUBLIC_BASE_PATH` の設定は不要です。
 
 ## 料金データの公式出典
 
