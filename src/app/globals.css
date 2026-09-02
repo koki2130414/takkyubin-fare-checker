@@ -1,0 +1,68 @@
+@import "tailwindcss";
+
+/*
+ * 配色: 白を基調に、紺色（primary）と落ち着いた黄色（accent）をアクセントに使用。
+ * ダークモード対応は要件外のため、常にライト配色で固定する。
+ */
+@theme {
+  --color-navy-50: #f2f5fa;
+  --color-navy-100: #e2e9f4;
+  --color-navy-200: #c3d0e6;
+  --color-navy-400: #5b78ab;
+  --color-navy-600: #2b4b85;
+  --color-navy-700: #1f3a69;
+  --color-navy-800: #16305c;
+  --color-navy-900: #102343;
+
+  --color-accent-50: #fdf8e8;
+  --color-accent-200: #f6e3a6;
+  --color-accent-400: #e8bf49;
+  --color-accent-600: #a97c12;
+  --color-accent-700: #7d5a08;
+
+  --color-canvas: #f6f7f9;
+
+  --font-sans:
+    "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Noto Sans JP",
+    "Yu Gothic Medium", "Yu Gothic", Meiryo, system-ui, -apple-system,
+    "Segoe UI", sans-serif;
+}
+
+html {
+  color-scheme: light;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background-color: var(--color-canvas);
+  color: var(--color-navy-900);
+  font-family: var(--font-sans);
+  /* 360px 幅でも横スクロールを発生させない */
+  overflow-x: hidden;
+}
+
+/* キーボード操作時のフォーカスを明確にする */
+:focus-visible {
+  outline: 3px solid var(--color-navy-600);
+  outline-offset: 2px;
+}
+
+/* 数値入力のスピナーは誤操作の元になるため非表示にする */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
