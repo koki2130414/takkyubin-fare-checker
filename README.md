@@ -1,6 +1,6 @@
 # かんたん宅急便送料チェック（非公式）
 
-**公開URL: https://koki2130414.github.io/takkyubin-fare-checker/**
+**公開URL: https://213nouen.jp/**
 
 栃木県下野市から発送するお米のご注文について、**お米の代金とヤマト運輸「宅急便」の
 基本運賃の目安**を確認できる Web サイトです。購入者がお届け先（都道府県）と
@@ -78,11 +78,25 @@ lint・型チェック・テスト・ビルドを実行し、`out/` を GitHub P
 初回のみ、リポジトリの **Settings → Pages → Build and deployment → Source** を
 **GitHub Actions** に設定してください。
 
-サブパス（`/takkyubin-fare-checker/`）で配信するため、ワークフロー内でビルド時に
-`NEXT_PUBLIC_BASE_PATH=/takkyubin-fare-checker` を指定しています。
-リポジトリ名を変更した場合は、`.github/workflows/deploy.yml` のこの値も合わせて
-変更してください。ローカル開発時はこの環境変数を指定しないため、`http://localhost:3000/`
-のままルート配信で動作します。
+### 独自ドメイン（213nouen.jp）
+
+- `public/CNAME` にドメイン名を置いています。GitHub の **Settings → Pages → Custom domain**
+  にも同じ値を設定し、**Enforce HTTPS** を有効にします
+- DNS（お名前.com）では、ホスト名を空欄にした **A レコードを 4 つ**登録します
+
+  ```
+  185.199.108.153
+  185.199.109.153
+  185.199.110.153
+  185.199.111.153
+  ```
+
+- ルート配信なので `NEXT_PUBLIC_BASE_PATH` は**指定しません**。
+  `koki2130414.github.io/リポジトリ名/` のようなサブパス配信に戻す場合のみ、
+  `.github/workflows/deploy.yml` のビルドステップに
+  `NEXT_PUBLIC_BASE_PATH: /takkyubin-fare-checker` を追加してください
+- ドメインを変更するときは、`public/CNAME`・GitHub の Custom domain・DNS の 3 か所を
+  合わせて変更します
 
 ## Vercel へのデプロイ方法
 

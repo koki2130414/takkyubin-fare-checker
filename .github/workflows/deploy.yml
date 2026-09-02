@@ -39,10 +39,10 @@ jobs:
       - name: Test
         run: npm run test
 
+      # 独自ドメイン（213nouen.jp）でルート配信するため basePath は指定しない。
+      # サブパス配信に戻す場合は NEXT_PUBLIC_BASE_PATH を指定する。
       - name: Build (static export)
         run: npm run build
-        env:
-          NEXT_PUBLIC_BASE_PATH: /takkyubin-fare-checker
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
