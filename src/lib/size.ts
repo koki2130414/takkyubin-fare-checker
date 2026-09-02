@@ -195,6 +195,54 @@ export function judgeSize(m: PackageMeasurements): SizeJudgement {
   };
 }
 
+export type WeightSizeJudgement =
+  | {
+      readonly ok: true;
+      readonly size: TakkyubinSize;
+      readonly weightKg: number;
+    }
+  | {
+      readonly ok: false;
+      readonly reason: OutOfSpecReason;
+      readonly message: string;
+    };
+
+/**
+ * 実重量だけからサイズ区分を判定する。
+ *
+ * 箱の寸法が分かっている場合は judgeSize を使うこと。
+ * こちらは「箱込み○キロ」のように重量しか分からない場合の判定で、
+ * 箱が大きいときは実際にはもう 1 つ上のサイズ区分になることがある。
+ */
+export function judgeSizeByWeight(weightKg: number): WeightSizeJudgement {
+  if (!isUsableNumber(weightKg)) {
+    return {
+      ok: false,
+      reason: "invalidNumber",
+      message: OUT_OF_SPEC_MESSAGES.invalidNumber,
+    };
+  }
+  if (weightKg <= 0) {
+    return {
+      ok: false,
+      reason: "nonPositive",
+      message: OUT_OF_SPEC_MESSAGES.nonPositive,
+    };
+  }
+
+  const weight = round2(weightKg);
+  const size = sizeByWeight(weight);
+  if (size === null) {
+    return {
+      ok: false,
+      reason: "weightOver30",
+      message: OUT_OF_SPEC_MESSAGES.weightOver30,
+    };
+  }
+
+  return { ok: true, size, weightKg: weight };
+}
+
 /** 型ガード用（テストや UI で利用） */
 export function isTakkyubinSize(value: number): value is TakkyubinSize {
   return (TAKKYUBIN_SIZES as readonly number[]).includes(value);

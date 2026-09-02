@@ -13,6 +13,9 @@ export function SiteHeader() {
         <p className="mt-2 text-sm text-navy-100 sm:text-base">
           栃木県下野市から発送する場合の送料目安を確認できます
         </p>
+        <p className="mt-1 text-sm text-navy-100 sm:text-base">
+          お米の量とお届け先を選ぶだけで、お米の代金と送料の合計が分かります
+        </p>
         <p className="mt-4 inline-flex flex-wrap items-center gap-2 rounded-lg bg-white/10 px-3 py-2 text-sm">
           <span className="rounded bg-accent-400 px-2 py-0.5 text-xs font-bold text-navy-900">
             発送元 固定
