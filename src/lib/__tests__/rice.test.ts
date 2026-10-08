@@ -15,31 +15,29 @@ function raw(overrides: Record<string, string> = {}) {
 }
 
 describe("お米の選択肢データ", () => {
-  it("注文フォームと同じ 7 種類がある", () => {
+  it("注文フォームの配送対象（箱込み）4種類がある", () => {
     expect(RICE_PRODUCTS.map((p) => p.label)).toEqual([
-      "箱込み1.5キロ",
       "箱込み5キロ",
       "箱込み10キロ",
-      "箱込み15キロ",
-      "箱込み20キロ",
-      "箱込み25キロ",
       "箱込み30キロ",
+      "箱込み玄米30キロ",
     ]);
   });
 
   it.each([
-    ["1_5kg", 1.5, 750],
-    ["5kg", 5, 2250],
-    ["10kg", 10, 4250],
-    ["15kg", 15, 6000],
-    ["20kg", 20, 8000],
-    ["25kg", 25, 10000],
-    ["30kg", 30, 13000],
+    ["5kg", 5, 2700],
+    ["10kg", 10, 5400],
+    ["30kg", 30, 16200],
+    ["genmai30kg", 30, 13000],
   ] as const)("%s は %fkg・%d 円", (id, weight, price) => {
     const product = findRiceProduct(id);
     expect(product).not.toBeNull();
     expect(product!.grossWeightKg).toBe(weight);
     expect(product!.priceYen).toBe(price);
+  });
+
+  it("箱込み30キロには精米後の注記がある", () => {
+    expect(findRiceProduct("30kg")!.note).toBe("精米すると26キロくらいになります");
   });
 
   it("存在しない id は null", () => {
@@ -89,13 +87,10 @@ describe("judgeSizeByWeight：箱込み重量からのサイズ判定", () => {
  */
 describe("quoteRiceShipping：東京都宛て（関東）", () => {
   it.each([
-    ["1_5kg", 60, 940, 750, 1690],
-    ["5kg", 80, 1230, 2250, 3480],
-    ["10kg", 100, 1530, 4250, 5780],
-    ["15kg", 120, 2040, 6000, 8040],
-    ["20kg", 140, 2630, 8000, 10630],
-    ["25kg", 160, 3020, 10000, 13020],
-    ["30kg", 180, 3680, 13000, 16680],
+    ["5kg", 80, 1230, 2700, 3930],
+    ["10kg", 100, 1530, 5400, 6930],
+    ["30kg", 180, 3680, 16200, 19880],
+    ["genmai30kg", 180, 3680, 13000, 16680],
   ] as const)(
     "%s → %i サイズ・送料 %d 円・お米 %d 円・合計 %d 円",
     (productId, size, fare, price, total) => {
@@ -114,16 +109,16 @@ describe("quoteRiceShipping：東京都宛て（関東）", () => {
 });
 
 describe("quoteRiceShipping：他地域", () => {
-  it("北海道宛て 箱込み10キロ は 100 サイズ・送料 2,050 円・合計 6,300 円", () => {
+  it("北海道宛て 箱込み10キロ は 100 サイズ・送料 2,050 円・合計 7,450 円", () => {
     const result = quoteRiceShipping(raw({ destinationPrefectureCode: "01" }));
     expect(result.status).toBe("ok");
     if (result.status !== "ok") return;
     expect(result.size).toBe(100);
     expect(result.unitFareYen).toBe(2050);
-    expect(result.grandTotalYen).toBe(4250 + 2050);
+    expect(result.grandTotalYen).toBe(5400 + 2050);
   });
 
-  it("沖縄県宛て 箱込み30キロ は 180 サイズ・送料 7,210 円・合計 20,210 円", () => {
+  it("沖縄県宛て 箱込み30キロ は 180 サイズ・送料 7,210 円・合計 23,410 円", () => {
     const result = quoteRiceShipping(
       raw({ destinationPrefectureCode: "47", productId: "30kg" }),
     );
@@ -131,7 +126,7 @@ describe("quoteRiceShipping：他地域", () => {
     if (result.status !== "ok") return;
     expect(result.size).toBe(180);
     expect(result.unitFareYen).toBe(7210);
-    expect(result.grandTotalYen).toBe(13000 + 7210);
+    expect(result.grandTotalYen).toBe(16200 + 7210);
   });
 
   it("栃木県内（同一地域）宛て 箱込み5キロ は 80 サイズ・送料 1,230 円", () => {
@@ -141,7 +136,20 @@ describe("quoteRiceShipping：他地域", () => {
     expect(result.status).toBe("ok");
     if (result.status !== "ok") return;
     expect(result.unitFareYen).toBe(1230);
-    expect(result.grandTotalYen).toBe(2250 + 1230);
+    expect(result.grandTotalYen).toBe(2700 + 1230);
+  });
+
+  it("玄米30キロと白米30キロは送料が同じで、お米の代金だけが違う", () => {
+    const hakumai = quoteRiceShipping(raw({ productId: "30kg" }));
+    const genmai = quoteRiceShipping(raw({ productId: "genmai30kg" }));
+    expect(hakumai.status).toBe("ok");
+    expect(genmai.status).toBe("ok");
+    if (hakumai.status !== "ok" || genmai.status !== "ok") return;
+    expect(genmai.unitFareYen).toBe(hakumai.unitFareYen);
+    expect(genmai.size).toBe(hakumai.size);
+    expect(genmai.grandTotalYen).toBe(
+      (hakumai.grandTotalYen as number) - (16200 - 13000),
+    );
   });
 });
 
@@ -151,9 +159,9 @@ describe("quoteRiceShipping：個数", () => {
     expect(result.status).toBe("ok");
     if (result.status !== "ok") return;
     expect(result.quantity).toBe(3);
-    expect(result.productSubtotalYen).toBe(4250 * 3);
+    expect(result.productSubtotalYen).toBe(5400 * 3);
     expect(result.totalFareYen).toBe(1530 * 3);
-    expect(result.grandTotalYen).toBe(4250 * 3 + 1530 * 3);
+    expect(result.grandTotalYen).toBe(5400 * 3 + 1530 * 3);
   });
 
   it("個数 100（上限）まで計算できる", () => {
@@ -175,6 +183,13 @@ describe("quoteRiceShipping：入力エラー", () => {
     expect(result.status).toBe("invalidInput");
     if (result.status === "invalidInput") {
       expect(result.errors.productId).toBeTruthy();
+    }
+  });
+
+  it("廃止された選択肢の id はエラー（直接受け取り・旧サイズ）", () => {
+    for (const productId of ["1_5kg", "15kg", "20kg", "25kg"]) {
+      const result = quoteRiceShipping(raw({ productId }));
+      expect(result.status).toBe("invalidInput");
     }
   });
 

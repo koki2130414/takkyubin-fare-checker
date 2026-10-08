@@ -117,13 +117,15 @@ Vercel はルート配信なので `NEXT_PUBLIC_BASE_PATH` の設定は不要で
 
 ```ts
 export const RICE_PRODUCTS: readonly RiceProduct[] = [
-  { id: "5kg", label: "箱込み5キロ", grossWeightKg: 5, priceYen: 2250 },
+  { id: "5kg", label: "箱込み5キロ", grossWeightKg: 5, priceYen: 2700 },
   //                                  ↑箱込みの重量        ↑お米の代金（送料は含まない）
 ];
 ```
 
 - `grossWeightKg` は**箱を含んだ発送重量**です。宅急便のサイズ区分はこの値から
   判定します（`src/lib/size.ts` の `judgeSizeByWeight`）
+- 注文フォームの「※直接受け取り」の選択肢は配送しない（送料が発生しない）ため、
+  `RICE_PRODUCTS` には含めません
 - 選択肢を増やす場合は `id` が他と重複しないようにしてください
 - 価格を変えたら `RICE_PRODUCT_META.updatedOn` も更新してください
 - 期待値を持つテスト `src/lib/__tests__/rice.test.ts` も合わせて更新してください

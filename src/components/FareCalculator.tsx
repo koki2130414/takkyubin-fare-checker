@@ -328,7 +328,10 @@ export function FareCalculator() {
             ご希望のお米の量
           </h2>
           <p className="mt-1 text-sm text-navy-700">
-            注文フォームと同じ選択肢です。カッコ内はお米の代金（送料は別）です。
+            注文フォームの<strong>配送でお届けする選択肢</strong>です。金額はお米の代金（送料は別）です。
+          </p>
+          <p className="mt-1 text-sm text-navy-700">
+            「※直接受け取り」の選択肢は配送しないため送料はかかりません。ここには表示していません。
           </p>
 
           <fieldset className="mt-4">
