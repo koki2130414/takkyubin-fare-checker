@@ -38,7 +38,7 @@ export function RicePriceTable({ destination }: Props) {
               <th scope="col" className={`${CELL} text-left`}>
                 お米の量
                 <span className="block text-[0.65rem] font-normal text-navy-700 sm:text-xs">
-                  すべて箱込み
+                  5キロ以上は箱込み
                 </span>
               </th>
               <th scope="col" className={`${CELL} text-right`}>
@@ -59,12 +59,17 @@ export function RicePriceTable({ destination }: Props) {
                   <span className="whitespace-nowrap">
                     {product.label.replace("箱込み", "")}
                   </span>
-                  {/* サイズは幅の狭い画面では省略（結果カードに表示される） */}
+                  {/* 配送方法・サイズは幅の狭い画面では省略（結果カードに表示される） */}
                   <span className="hidden text-xs font-normal whitespace-nowrap text-navy-700 sm:block">
-                    {quote.status === "ok" ? `${quote.size} サイズ` : "—"}
+                    {quote.status !== "ok"
+                      ? "—"
+                      : quote.size === null
+                        ? quote.serviceLabel
+                        : `${quote.size} サイズ`}
                   </span>
+                  {/* 注記は幅の狭い画面では省略（選択肢と結果カードに表示される） */}
                   {product.note && (
-                    <span className="block text-[0.65rem] font-normal whitespace-nowrap text-navy-700 sm:text-xs">
+                    <span className="hidden text-xs font-normal whitespace-nowrap text-navy-700 sm:block">
                       ※{product.note}
                     </span>
                   )}
@@ -89,8 +94,9 @@ export function RicePriceTable({ destination }: Props) {
       </div>
 
       <p className="mt-3 text-xs leading-relaxed text-navy-700">
-        送料は宅急便の基本運賃（発払い・現金・税込）による目安です。サイズ区分は箱込みの重量から
-        判定しているため、箱が大きい場合は 1 つ上のサイズになることがあります。
+        送料は発払い・現金でのお支払いの運賃（税込）による目安です。宅急便のサイズ区分は箱込みの重量から
+        判定しているため、箱が大きい場合は 1 つ上のサイズになることがあります。1
+        キロは宅急便コンパクト（専用BOX）でのお届けです。
       </p>
     </section>
   );

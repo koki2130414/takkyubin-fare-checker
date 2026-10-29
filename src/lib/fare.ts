@@ -5,6 +5,12 @@
  */
 
 import {
+  COMPACT_FARE_META,
+  COMPACT_FARE_TABLE,
+  type CompactFareMeta,
+  type CompactFareTable,
+} from "@/data/compact-fare-table";
+import {
   FARE_TABLE,
   FARE_TABLE_META,
   type FareTable,
@@ -13,7 +19,11 @@ import {
 } from "@/data/fare-table";
 import { ORIGIN } from "@/data/origin";
 import { REGION_LABELS, type Prefecture, type RegionCode } from "@/data/prefectures";
-import type { RiceProduct } from "@/data/rice-products";
+import {
+  SHIPPING_SERVICE_LABELS,
+  type RiceProduct,
+  type ShippingService,
+} from "@/data/rice-products";
 import {
   judgeSize,
   judgeSizeByWeight,
@@ -29,8 +39,11 @@ import {
   type ValidationErrors,
 } from "./validation";
 
+/** 画面に出す料金データのメタ情報（宅急便・宅急便コンパクト共通で使える形） */
+export type FareMeta = FareTableMeta | CompactFareMeta;
+
 /**
- * 発送地域 × 配送先地域 × サイズ で税込運賃を引く。
+ * 発送地域 × 配送先地域 × サイズ で宅急便の税込運賃を引く。
  * 料金データが未設定の場合は null を返す（推測値は返さない）。
  */
 export function lookupFare(
@@ -43,8 +56,21 @@ export function lookupFare(
   return typeof fare === "number" && Number.isFinite(fare) ? fare : null;
 }
 
+/**
+ * 発送地域 × 配送先地域 で宅急便コンパクトの税込運賃を引く。
+ * 宅急便コンパクトにサイズ区分はない。未設定なら null。
+ */
+export function lookupCompactFare(
+  originRegion: RegionCode,
+  destinationRegion: RegionCode,
+  table: CompactFareTable = COMPACT_FARE_TABLE,
+): number | null {
+  const fare = table[originRegion]?.[destinationRegion];
+  return typeof fare === "number" && Number.isFinite(fare) ? fare : null;
+}
+
 /** サイズ判定の根拠 */
-export type SizeBasis = "dimensions" | "weight";
+export type SizeBasis = "dimensions" | "weight" | "none";
 
 export type ShippingQuoteOk = {
   readonly status: "ok";
@@ -53,12 +79,16 @@ export type ShippingQuoteOk = {
   readonly originRegionLabel: string;
   readonly destination: Prefecture;
   readonly destinationRegionLabel: string;
-  readonly size: TakkyubinSize;
+  /** 配送に使うサービス */
+  readonly service: ShippingService;
+  readonly serviceLabel: string;
+  /** 宅急便のサイズ区分。宅急便コンパクトでは null。 */
+  readonly size: TakkyubinSize | null;
   readonly basis: SizeBasis;
   /** 寸法から計算した場合のみ入る */
   readonly dimensionSumCm: number | null;
   readonly sizeByDimension: TakkyubinSize | null;
-  readonly sizeByWeight: TakkyubinSize;
+  readonly sizeByWeight: TakkyubinSize | null;
   readonly weightKg: number;
   readonly unitFareYen: number;
   readonly quantity: number;
@@ -70,7 +100,7 @@ export type ShippingQuoteOk = {
   readonly productSubtotalYen: number | null;
   /** 商品代金 ＋ 送料。お米モード以外は null。 */
   readonly grandTotalYen: number | null;
-  readonly meta: FareTableMeta;
+  readonly meta: FareMeta;
 };
 
 export type ShippingQuote =
@@ -88,10 +118,11 @@ export type ShippingQuote =
   | {
       readonly status: "fareUnavailable";
       readonly destination: Prefecture;
-      readonly size: TakkyubinSize;
+      readonly serviceLabel: string;
+      readonly size: TakkyubinSize | null;
       readonly dimensionSumCm: number | null;
       readonly originRegion: RegionCode;
-      readonly meta: FareTableMeta;
+      readonly meta: FareMeta;
     };
 
 export type QuoteOptions = {
@@ -99,6 +130,8 @@ export type QuoteOptions = {
   readonly originLabel?: string;
   readonly table?: FareTable;
   readonly meta?: FareTableMeta;
+  readonly compactTable?: CompactFareTable;
+  readonly compactMeta?: CompactFareMeta;
 };
 
 function resolveOptions(options: QuoteOptions) {
@@ -107,11 +140,13 @@ function resolveOptions(options: QuoteOptions) {
     originLabel: options.originLabel ?? ORIGIN.label,
     table: options.table ?? FARE_TABLE,
     meta: options.meta ?? FARE_TABLE_META,
+    compactTable: options.compactTable ?? COMPACT_FARE_TABLE,
+    compactMeta: options.compactMeta ?? COMPACT_FARE_META,
   };
 }
 
 /**
- * 寸法と重量から送料を計算する。
+ * 寸法と重量から宅急便の送料を計算する。
  * すべての口数は「同一サイズ・同一配送先」として単価 × 個数で算出する。
  */
 export function calculateShipping(
@@ -145,6 +180,7 @@ export function calculateShipping(
     return {
       status: "fareUnavailable",
       destination: params.destination,
+      serviceLabel: SHIPPING_SERVICE_LABELS.takkyubin,
       size: judgement.size,
       dimensionSumCm: judgement.dimensionSumCm,
       originRegion,
@@ -159,6 +195,8 @@ export function calculateShipping(
     originRegionLabel: REGION_LABELS[originRegion],
     destination: params.destination,
     destinationRegionLabel: REGION_LABELS[params.destination.region],
+    service: "takkyubin",
+    serviceLabel: SHIPPING_SERVICE_LABELS.takkyubin,
     size: judgement.size,
     basis: "dimensions",
     dimensionSumCm: judgement.dimensionSumCm,
@@ -176,8 +214,11 @@ export function calculateShipping(
 }
 
 /**
- * お米の選択肢（箱込み重量）から送料と合計金額を計算する。
- * 寸法が分からないため、サイズ区分は箱込み重量だけで判定する。
+ * お米の選択肢から送料と合計金額を計算する。
+ *
+ * - 宅急便の選択肢は、寸法が分からないため箱込み重量だけでサイズ区分を判定する。
+ * - 宅急便コンパクトの選択肢は、専用BOXを使うためサイズ区分がなく、
+ *   運賃は配送先の地域だけで決まる。
  */
 export function calculateRiceShipping(
   params: {
@@ -187,9 +228,70 @@ export function calculateRiceShipping(
   },
   options: QuoteOptions = {},
 ): ShippingQuote {
-  const { originRegion, originLabel, table, meta } = resolveOptions(options);
+  const {
+    originRegion,
+    originLabel,
+    table,
+    meta,
+    compactTable,
+    compactMeta,
+  } = resolveOptions(options);
 
-  const judgement = judgeSizeByWeight(params.product.grossWeightKg);
+  const { product } = params;
+  const serviceLabel = SHIPPING_SERVICE_LABELS[product.service];
+
+  const common = {
+    status: "ok" as const,
+    originLabel,
+    originRegion,
+    originRegionLabel: REGION_LABELS[originRegion],
+    destination: params.destination,
+    destinationRegionLabel: REGION_LABELS[params.destination.region],
+    service: product.service,
+    serviceLabel,
+    dimensionSumCm: null,
+    sizeByDimension: null,
+    quantity: params.quantity,
+    product,
+  };
+
+  const productSubtotalYen = product.priceYen * params.quantity;
+
+  if (product.service === "compact") {
+    const unitFareYen = lookupCompactFare(
+      originRegion,
+      params.destination.region,
+      compactTable,
+    );
+
+    if (unitFareYen === null) {
+      return {
+        status: "fareUnavailable",
+        destination: params.destination,
+        serviceLabel,
+        size: null,
+        dimensionSumCm: null,
+        originRegion,
+        meta: compactMeta,
+      };
+    }
+
+    const totalFareYen = unitFareYen * params.quantity;
+    return {
+      ...common,
+      size: null,
+      basis: "none",
+      sizeByWeight: null,
+      weightKg: product.grossWeightKg,
+      unitFareYen,
+      totalFareYen,
+      productSubtotalYen,
+      grandTotalYen: productSubtotalYen + totalFareYen,
+      meta: compactMeta,
+    };
+  }
+
+  const judgement = judgeSizeByWeight(product.grossWeightKg);
   if (!judgement.ok) {
     return {
       status: "outOfSpec",
@@ -210,6 +312,7 @@ export function calculateRiceShipping(
     return {
       status: "fareUnavailable",
       destination: params.destination,
+      serviceLabel,
       size: judgement.size,
       dimensionSumCm: null,
       originRegion,
@@ -218,25 +321,14 @@ export function calculateRiceShipping(
   }
 
   const totalFareYen = unitFareYen * params.quantity;
-  const productSubtotalYen = params.product.priceYen * params.quantity;
-
   return {
-    status: "ok",
-    originLabel,
-    originRegion,
-    originRegionLabel: REGION_LABELS[originRegion],
-    destination: params.destination,
-    destinationRegionLabel: REGION_LABELS[params.destination.region],
+    ...common,
     size: judgement.size,
     basis: "weight",
-    dimensionSumCm: null,
-    sizeByDimension: null,
     sizeByWeight: judgement.size,
     weightKg: judgement.weightKg,
     unitFareYen,
-    quantity: params.quantity,
     totalFareYen,
-    product: params.product,
     productSubtotalYen,
     grandTotalYen: productSubtotalYen + totalFareYen,
     meta,

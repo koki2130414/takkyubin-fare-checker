@@ -117,13 +117,18 @@ Vercel はルート配信なので `NEXT_PUBLIC_BASE_PATH` の設定は不要で
 
 ```ts
 export const RICE_PRODUCTS: readonly RiceProduct[] = [
-  { id: "5kg", label: "箱込み5キロ", grossWeightKg: 5, priceYen: 2700 },
-  //                                  ↑箱込みの重量        ↑お米の代金（送料は含まない）
+  // 宅急便（箱込み重量からサイズ区分を判定）
+  { id: "5kg", label: "箱込み5キロ", service: "takkyubin", grossWeightKg: 5, priceYen: 2700 },
+  // 宅急便コンパクト（専用BOX。サイズ区分なし、運賃は地域だけで決まる）
+  { id: "1kg", label: "1キロ", service: "compact", grossWeightKg: 1, priceYen: 800 },
 ];
 ```
 
-- `grossWeightKg` は**箱を含んだ発送重量**です。宅急便のサイズ区分はこの値から
-  判定します（`src/lib/size.ts` の `judgeSizeByWeight`）
+- `service` は `"takkyubin"`（通常の宅急便）か `"compact"`（宅急便コンパクト）です
+- `grossWeightKg` は**発送時の重量**です。`service: "takkyubin"` のときだけ
+  サイズ区分の判定に使います（`src/lib/size.ts` の `judgeSizeByWeight`）。
+  `"compact"` では専用BOXを使うためサイズ区分がなく、運賃は配送先の地域だけで
+  決まります（`src/data/compact-fare-table.ts`）
 - 注文フォームの「※直接受け取り」の選択肢は配送しない（送料が発生しない）ため、
   `RICE_PRODUCTS` には含めません
 - 選択肢を増やす場合は `id` が他と重複しないようにしてください
@@ -140,8 +145,9 @@ export const RICE_PRODUCTS: readonly RiceProduct[] = [
 
 | 種類 | URL |
 | --- | --- |
-| 運賃一覧表 | https://www.kuronekoyamato.co.jp/ytc/search/estimate/ichiran.html |
+| 運賃一覧表（宅急便・宅急便コンパクト共通） | https://www.kuronekoyamato.co.jp/ytc/search/estimate/ichiran.html |
 | サイズ規格 | https://www.kuronekoyamato.co.jp/ytc/customer/send/search/payment/size/ |
+| 宅急便コンパクト | https://www.kuronekoyamato.co.jp/ytc/customer/send/services/compact/ |
 
 ## 現在の料金データ
 
@@ -150,6 +156,13 @@ export const RICE_PRODUCTS: readonly RiceProduct[] = [
 - 種別：宅急便 発払い・現金でのお支払いの基本運賃（税込）
 - 収録範囲：**関東発**の 1 行のみ（発送元が栃木県下野市＝関東地帯に固定のため）
 - 対応地域：全 47 都道府県（沖縄県を含む）
+
+### 宅急便コンパクト（1キロの選択肢で使用）
+
+- **確認日：2026 年 10 月 29 日**（公式の運賃一覧表に適用開始日の記載がないため未掲載）
+- 種別：宅急便コンパクト 発払い・現金でのお支払いの運賃（税込）
+- サイズ区分はなく、運賃は配送先の地域だけで決まります
+- 専用BOX（税込 70 円）は**サイトの表示金額に含めていません**
 
 ## 料金データの更新方法
 
@@ -206,7 +219,8 @@ export const RICE_PRODUCTS: readonly RiceProduct[] = [
 - 持込割（営業所・取扱店・コンビニへの持ち込み）
 - クロネコメンバー割などの会員割引、複数口減額
 - キャッシュレス決済運賃（現金以外の支払い）
-- クール宅急便、宅急便コンパクト、ネコポス、EAZY などの別サービス
+- クール宅急便、ネコポス、EAZY などの別サービス
+- 宅急便コンパクトの専用BOX代（税込 70 円）
 - 着払い、往復宅急便、ゴルフ・スキー宅急便、空港宅急便
 - 離島・一部地域の追加条件、時間帯指定等のオプション
 
@@ -236,8 +250,9 @@ export const RICE_PRODUCTS: readonly RiceProduct[] = [
 ```
 src/
 ├─ data/
-│  ├─ fare-table.ts    # 最新運賃データ + メタ情報（運賃改定時はここを更新）
-│  ├─ rice-products.ts # お米の選択肢と価格（フォーム変更時はここを更新）
+│  ├─ fare-table.ts         # 宅急便の運賃データ + メタ情報（運賃改定時はここを更新）
+│  ├─ compact-fare-table.ts # 宅急便コンパクトの運賃データ + メタ情報
+│  ├─ rice-products.ts      # お米の選択肢・価格・配送サービス（フォーム変更時はここを更新）
 │  ├─ prefectures.ts   # 都道府県 × 配送地域（地帯）の対応データ
 │  └─ origin.ts        # 発送元（栃木県下野市・関東発）の固定値
 ├─ lib/

@@ -1,3 +1,4 @@
+import { COMPACT_FARE_META } from "@/data/compact-fare-table";
 import { FARE_TABLE_META } from "@/data/fare-table";
 import { formatDateJa } from "@/lib/format";
 import {
@@ -77,9 +78,9 @@ export function Disclaimer() {
       </h2>
       <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-relaxed text-navy-800">
         <li>
-          {"表示額は、宅急便の"}
-          <strong>基本運賃（発払い・現金でのお支払い・税込）</strong>
-          {"による目安です。"}
+          {"表示額は、"}
+          <strong>発払い・現金でのお支払いの運賃（税込）</strong>
+          {"による目安です。5キロ以上は宅急便の基本運賃、1キロは宅急便コンパクトの運賃を使っています。"}
         </li>
         <li>
           実際の送料は、ヤマト運輸でお荷物を計測した際に確定します。宅急便のサイズ区分は
@@ -90,7 +91,11 @@ export function Disclaimer() {
           お米の代金は注文フォームの金額を転記したものです。最新の価格は注文フォームをご確認ください。
         </li>
         <li>
-          {"割引、キャッシュレス決済運賃、持込割、クロネコメンバー割などの会員割引、クール宅急便、宅急便コンパクト、着払い、複数口減額などは計算に含めていません。"}
+          {"割引、キャッシュレス決済運賃、持込割、クロネコメンバー割などの会員割引、クール宅急便、着払い、複数口減額などは計算に含めていません。"}
+        </li>
+        <li>
+          宅急便コンパクトのご利用には専用BOX（税込
+          {COMPACT_FARE_META.boxPriceYen}円）が必要です。表示している金額には含めていません。
         </li>
         <li>
           荷物の種類、梱包状態、離島、受付場所などによって、利用条件や料金が異なる場合があります。
@@ -126,10 +131,25 @@ export function Disclaimer() {
               宅急便のサイズについて
             </a>
           </li>
+          <li>
+            <a
+              className="font-bold break-all text-navy-800 underline"
+              href={COMPACT_FARE_META.serviceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              宅急便コンパクトについて
+            </a>
+          </li>
         </ul>
         <p>
-          適用開始日：{formatDateJa(FARE_TABLE_META.effectiveFrom)} ／ 確認日：
-          {formatDateJa(FARE_TABLE_META.checkedOn)}
+          宅急便の運賃：適用開始日 {formatDateJa(FARE_TABLE_META.effectiveFrom)} ／
+          確認日 {formatDateJa(FARE_TABLE_META.checkedOn)}
+        </p>
+        <p>
+          宅急便コンパクトの運賃：確認日{" "}
+          {formatDateJa(COMPACT_FARE_META.checkedOn)}
+          （公式サイトに適用開始日の記載がないため未掲載）
         </p>
         <p>{FARE_TABLE_META.note}</p>
       </div>

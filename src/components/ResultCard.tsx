@@ -70,8 +70,10 @@ function PriceBreakdown({ quote }: { readonly quote: ShippingQuoteOk }) {
               <span aria-hidden="true">＋ </span>送料
             </p>
             <p className="text-xs text-navy-700">
-              {quote.size} サイズ {formatYen(quote.unitFareYen)} ×{" "}
-              {quote.quantity} 個
+              {quote.size === null
+                ? quote.serviceLabel
+                : `${quote.serviceLabel} ${quote.size} サイズ`}{" "}
+              {formatYen(quote.unitFareYen)} × {quote.quantity} 個
             </p>
           </div>
           <p className="shrink-0 text-xl font-bold text-navy-900 tabular-nums sm:text-2xl">
@@ -140,8 +142,9 @@ export function ResultCard({ quote }: Props) {
       >
         <p className="text-base font-bold">料金データ未設定</p>
         <p className="mt-2">
-          {quote.destination.name}宛て・{quote.size}
-          サイズの運賃データがこのサイトに登録されていないため、送料を表示できません。
+          {quote.destination.name}宛て・{quote.serviceLabel}
+          {quote.size === null ? "" : `（${quote.size} サイズ）`}
+          の運賃データがこのサイトに登録されていないため、送料を表示できません。
           正確な運賃はヤマト運輸公式サイトでご確認ください。
         </p>
       </div>
@@ -174,7 +177,10 @@ export function ResultCard({ quote }: Props) {
             }
           />
         )}
-        <Row label="宅急便サイズ" value={`${quote.size} サイズ`} />
+        <Row label="配送方法" value={quote.serviceLabel} />
+        {quote.size !== null && (
+          <Row label="宅急便サイズ" value={`${quote.size} サイズ`} />
+        )}
         {quote.dimensionSumCm !== null && (
           <Row
             label="3 辺合計"
@@ -182,7 +188,13 @@ export function ResultCard({ quote }: Props) {
           />
         )}
         <Row
-          label={isRiceMode ? "箱込みの重量" : "入力重量"}
+          label={
+            isRiceMode
+              ? quote.service === "compact"
+                ? "お米の量"
+                : "箱込みの重量"
+              : "入力重量"
+          }
           value={`${formatNumber(quote.weightKg, 3)} kg`}
         />
         {quote.product && (
@@ -203,28 +215,37 @@ export function ResultCard({ quote }: Props) {
             value={formatYen(quote.grandTotalYen)}
           />
         )}
-        <Row
-          label="料金データ適用開始日"
-          value={formatDateJa(quote.meta.effectiveFrom)}
-        />
+        {quote.meta.effectiveFrom !== null && (
+          <Row
+            label="料金データ適用開始日"
+            value={formatDateJa(quote.meta.effectiveFrom)}
+          />
+        )}
         <Row label="料金データ確認日" value={formatDateJa(quote.meta.checkedOn)} />
       </dl>
 
       <div className="space-y-2 border-t border-navy-100 bg-navy-50 px-4 py-3 text-xs leading-relaxed text-navy-700">
-        <p className="font-bold">送料は基本運賃による目安です。</p>
+        <p className="font-bold">送料は発払い・現金でのお支払いの運賃による目安です。</p>
         {quote.basis === "weight" && (
           <p>
             サイズ区分は箱込みの重量から判定しています。箱が大きい場合は、実際には
             1 つ上のサイズ区分になり、送料が上がることがあります。
           </p>
         )}
+        {quote.service === "compact" && (
+          <p>
+            宅急便コンパクトは専用BOXでお届けするサービスで、サイズ区分はありません。運賃はお届け先の地域だけで決まります。
+          </p>
+        )}
         <p>
           複数個の場合は、すべて同じサイズ・同じ配送先として「1 個あたりの金額 ×
           個数」で計算しています。
         </p>
-        <p>
-          {`上下逆さまにできないなど輸送状態に定めがある荷物は、1 辺 ${RESTRICTED_ORIENTATION_MAX_SIDE_CM}cm 以内となります。`}
-        </p>
+        {quote.service === "takkyubin" && (
+          <p>
+            {`上下逆さまにできないなど輸送状態に定めがある荷物は、1 辺 ${RESTRICTED_ORIENTATION_MAX_SIDE_CM}cm 以内となります。`}
+          </p>
+        )}
         <p>
           離島など、お届け先によっては別途条件が加わる場合があります。確定料金ではありません。
         </p>

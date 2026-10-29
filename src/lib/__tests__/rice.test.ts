@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { findPrefectureByName } from "@/data/prefectures";
+import { PREFECTURES, findPrefectureByName } from "@/data/prefectures";
 import { RICE_PRODUCTS, findRiceProduct } from "@/data/rice-products";
+import { COMPACT_FARE_TABLE } from "@/data/compact-fare-table";
 import { calculateRiceShipping, quoteRiceShipping } from "@/lib/fare";
 import { judgeSizeByWeight } from "@/lib/size";
 
@@ -15,8 +16,9 @@ function raw(overrides: Record<string, string> = {}) {
 }
 
 describe("お米の選択肢データ", () => {
-  it("注文フォームの配送対象（箱込み）4種類がある", () => {
+  it("注文フォームの配送対象 5 種類がある", () => {
     expect(RICE_PRODUCTS.map((p) => p.label)).toEqual([
+      "1キロ",
       "箱込み5キロ",
       "箱込み10キロ",
       "箱込み30キロ",
@@ -25,15 +27,17 @@ describe("お米の選択肢データ", () => {
   });
 
   it.each([
-    ["5kg", 5, 2700],
-    ["10kg", 10, 5400],
-    ["30kg", 30, 16200],
-    ["genmai30kg", 30, 13000],
-  ] as const)("%s は %fkg・%d 円", (id, weight, price) => {
+    ["1kg", 1, 800, "compact"],
+    ["5kg", 5, 2700, "takkyubin"],
+    ["10kg", 10, 5400, "takkyubin"],
+    ["30kg", 30, 16200, "takkyubin"],
+    ["genmai30kg", 30, 13000, "takkyubin"],
+  ] as const)("%s は %fkg・%d 円・%s", (id, weight, price, service) => {
     const product = findRiceProduct(id);
     expect(product).not.toBeNull();
     expect(product!.grossWeightKg).toBe(weight);
     expect(product!.priceYen).toBe(price);
+    expect(product!.service).toBe(service);
   });
 
   it("箱込み30キロには精米後の注記がある", () => {
@@ -213,6 +217,93 @@ describe("料金データが存在しない場合", () => {
     expect(result.status).toBe("fareUnavailable");
     if (result.status === "fareUnavailable") {
       expect(result.size).toBe(100);
+    }
+  });
+});
+
+/**
+ * 宅急便コンパクトの期待値は公式運賃（関東発・税込・現金）。
+ * https://www.kuronekoyamato.co.jp/ytc/search/estimate/ichiran.html
+ */
+describe("宅急便コンパクト（1キロ）", () => {
+  it.each([
+    ["13", "東京都", 650, 1450],
+    ["09", "栃木県", 650, 1450],
+    ["01", "北海道", 870, 1670],
+    ["27", "大阪府", 710, 1510],
+    ["40", "福岡県", 870, 1670],
+    ["47", "沖縄県", 870, 1670],
+    ["34", "広島県", 760, 1560],
+  ] as const)(
+    "%s（%s）宛ては送料 %d 円・合計 %d 円",
+    (code, _name, fare, total) => {
+      const result = quoteRiceShipping(
+        raw({ destinationPrefectureCode: code, productId: "1kg" }),
+      );
+      expect(result.status).toBe("ok");
+      if (result.status !== "ok") return;
+      expect(result.service).toBe("compact");
+      expect(result.serviceLabel).toBe("宅急便コンパクト");
+      expect(result.unitFareYen).toBe(fare);
+      expect(result.productSubtotalYen).toBe(800);
+      expect(result.grandTotalYen).toBe(total);
+    },
+  );
+
+  it("サイズ区分を持たない（専用BOXのため）", () => {
+    const result = quoteRiceShipping(raw({ productId: "1kg" }));
+    expect(result.status).toBe("ok");
+    if (result.status !== "ok") return;
+    expect(result.size).toBeNull();
+    expect(result.sizeByWeight).toBeNull();
+    expect(result.sizeByDimension).toBeNull();
+    expect(result.dimensionSumCm).toBeNull();
+    expect(result.basis).toBe("none");
+  });
+
+  it("専用BOX代は合計に含めない（お米の代金＋運賃のみ）", () => {
+    const result = quoteRiceShipping(raw({ productId: "1kg" }));
+    expect(result.status).toBe("ok");
+    if (result.status !== "ok") return;
+    expect(result.grandTotalYen).toBe(
+      (result.productSubtotalYen as number) + result.totalFareYen,
+    );
+  });
+
+  it("個数を掛けた合計になる", () => {
+    const result = quoteRiceShipping(raw({ productId: "1kg", quantity: "4" }));
+    expect(result.status).toBe("ok");
+    if (result.status !== "ok") return;
+    expect(result.productSubtotalYen).toBe(800 * 4);
+    expect(result.totalFareYen).toBe(650 * 4);
+    expect(result.grandTotalYen).toBe(800 * 4 + 650 * 4);
+  });
+
+  it("宅急便コンパクトは同じ重量帯の宅急便 60 サイズより安い", () => {
+    const compact = quoteRiceShipping(raw({ productId: "1kg" }));
+    expect(compact.status).toBe("ok");
+    if (compact.status !== "ok") return;
+    // 関東発・関東宛ての宅急便 60 サイズは 940 円
+    expect(compact.unitFareYen).toBeLessThan(940);
+  });
+
+  it("全 47 都道府県ぶんのコンパクト運賃が登録されている", () => {
+    for (const prefecture of PREFECTURES) {
+      expect(COMPACT_FARE_TABLE.kanto?.[prefecture.region]).toBeTypeOf("number");
+    }
+  });
+
+  it("料金データが未設定なら金額を捏造せず fareUnavailable を返す", () => {
+    const destination = findPrefectureByName("東京都")!;
+    const product = findRiceProduct("1kg")!;
+    const result = calculateRiceShipping(
+      { destination, product, quantity: 1 },
+      { compactTable: {} },
+    );
+    expect(result.status).toBe("fareUnavailable");
+    if (result.status === "fareUnavailable") {
+      expect(result.size).toBeNull();
+      expect(result.serviceLabel).toBe("宅急便コンパクト");
     }
   });
 });
