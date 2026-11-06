@@ -35,12 +35,12 @@ describe("お米の選択肢データ", () => {
       "3キロ",
       "4.5キロ",
       "9.5キロ",
-      "精米26キロ",
+      "精米約25キロ",
       "玄米30キロ",
     ]);
   });
 
-  it("あさひの夢は配送できる 3 種類（精米26キロ・玄米30キロは配送不可）", () => {
+  it("あさひの夢は配送できる 3 種類（精米約25キロ・玄米30キロは配送不可）", () => {
     expect(productsOfVariety("asahinoyume").map((p) => p.label)).toEqual([
       "3キロ",
       "4.5キロ",
@@ -239,7 +239,7 @@ describe("宅急便コンパクト（1キロ）", () => {
 });
 
 describe("宅急便の選択肢：他地域", () => {
-  it("北海道宛て 精米26キロ は 180 サイズ・送料 5,220 円", () => {
+  it("北海道宛て 精米約25キロ は 180 サイズ・送料 5,220 円", () => {
     const result = quoteRiceShipping(
       raw({
         destinationPrefectureCode: "01",
@@ -313,7 +313,7 @@ describe("入力エラー", () => {
     }
   });
 
-  it("配送できない選択肢の id はエラー（あさひの夢の精米26キロなど）", () => {
+  it("配送できない選択肢の id はエラー（あさひの夢の精米約25キロなど）", () => {
     for (const productId of [
       "asahinoyume-seimai26kg",
       "asahinoyume-genmai30kg",

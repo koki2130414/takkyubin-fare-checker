@@ -31,7 +31,7 @@ export const RICE_VARIETIES: readonly VarietyInfo[] = [
   {
     id: "asahinoyume",
     label: "あさひの夢",
-    note: "精米26キロ・玄米30キロは配送を承っておりません（農園でのお受け取りのみ）。",
+    note: "精米約25キロ・玄米30キロは配送を承っておりません（農園でのお受け取りのみ）。",
   },
 ];
 
@@ -99,7 +99,7 @@ export const RICE_PRODUCTS: readonly RiceProduct[] = [
   {
     id: "koshihikari-seimai26kg",
     variety: "koshihikari",
-    label: "精米26キロ",
+    label: "精米約25キロ",
     priceYen: 14000,
     shipping: { kind: "takkyubin", size: 180 },
     note: "玄米30キロ分を、ご注文をいただいてから精米してお届けします",
@@ -113,7 +113,7 @@ export const RICE_PRODUCTS: readonly RiceProduct[] = [
     note: "精米せず、玄米のままお届けします",
   },
 
-  // ---- あさひの夢（精米26キロ・玄米30キロは配送不可のため未収録）----
+  // ---- あさひの夢（精米約25キロ・玄米30キロは配送不可のため未収録）----
   {
     id: "asahinoyume-3kg",
     variety: "asahinoyume",

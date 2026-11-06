@@ -142,7 +142,7 @@ export const RICE_PRODUCTS: readonly RiceProduct[] = [
   正しく 180 サイズで計算できます
 - `variety` は `"koshihikari"` か `"asahinoyume"` です。品種を増やすときは
   `RICE_VARIETIES` にも追加してください
-- 農園でお受け取りの選択肢と、配送できない選択肢（あさひの夢の精米26キロ・玄米30キロ）は
+- 農園でお受け取りの選択肢と、配送できない選択肢（あさひの夢の精米約25キロ・玄米30キロ）は
   送料が発生しないため収録していません
 - 価格を変えたら `RICE_PRODUCT_META.updatedOn` も更新してください
 - 期待値を持つテスト `src/lib/__tests__/rice.test.ts` も合わせて更新してください
