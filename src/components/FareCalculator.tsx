@@ -4,7 +4,11 @@ import { useId, useMemo, useRef, useState, type FormEvent } from "react";
 
 import { ORIGIN } from "@/data/origin";
 import { PREFECTURES, findPrefectureByCode } from "@/data/prefectures";
-import { RICE_PRODUCTS } from "@/data/rice-products";
+import {
+  RICE_VARIETIES,
+  productsOfVariety,
+  type RiceVariety,
+} from "@/data/rice-products";
 import { quoteRiceShipping, type ShippingQuote } from "@/lib/fare";
 import { formatYen } from "@/lib/format";
 import {
@@ -22,6 +26,7 @@ type FormState = {
   city: string;
   town: string;
   building: string;
+  variety: RiceVariety;
   productId: string;
   quantity: string;
 };
@@ -32,6 +37,7 @@ const INITIAL_STATE: FormState = {
   city: "",
   town: "",
   building: "",
+  variety: "koshihikari",
   productId: "",
   quantity: "1",
 };
@@ -79,6 +85,16 @@ export function FareCalculator() {
   const update = (name: keyof FormState) => (value: string) => {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
+
+  // 品種を変えると選べる量が変わるため、選択中のお米を解除する
+  const changeVariety = (variety: RiceVariety) => {
+    setForm((prev) =>
+      prev.variety === variety ? prev : { ...prev, variety, productId: "" },
+    );
+  };
+
+  const products = productsOfVariety(form.variety);
+  const selectedVariety = RICE_VARIETIES.find((v) => v.id === form.variety);
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -328,16 +344,53 @@ export function FareCalculator() {
             ご希望のお米の量
           </h2>
           <p className="mt-1 text-sm text-navy-700">
-            注文フォームの<strong>配送でお届けする選択肢</strong>です。金額はお米の代金（送料は別）です。
+            <strong>配送でお届けする選択肢</strong>です。重さはお米そのものの重さで、金額はお米の代金（送料は別）です。
           </p>
           <p className="mt-1 text-sm text-navy-700">
-            「※直接受け取り」の選択肢は配送しないため送料はかかりません。ここには表示していません。
+            農園でお受け取りの場合は送料がかからないため、ここには表示していません。
           </p>
+
+          <fieldset className="mt-4">
+            <legend className="text-sm font-bold text-navy-900">品種</legend>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {RICE_VARIETIES.map((variety) => {
+                const inputId = fieldId(`variety-${variety.id}`);
+                const checked = form.variety === variety.id;
+                return (
+                  <label
+                    key={variety.id}
+                    htmlFor={inputId}
+                    className={`flex min-h-12 cursor-pointer items-center gap-2 rounded-lg border-2 px-4 py-2 text-base font-bold ${
+                      checked
+                        ? "border-navy-800 bg-navy-800 text-white"
+                        : "border-navy-200 bg-white text-navy-800"
+                    }`}
+                  >
+                    <input
+                      id={inputId}
+                      type="radio"
+                      name="variety"
+                      value={variety.id}
+                      checked={checked}
+                      onChange={() => changeVariety(variety.id)}
+                      className="sr-only"
+                    />
+                    {variety.label}
+                  </label>
+                );
+              })}
+            </div>
+            {selectedVariety?.note && (
+              <p className="mt-2 text-xs text-navy-700">
+                ※{selectedVariety.note}
+              </p>
+            )}
+          </fieldset>
 
           <fieldset className="mt-4">
             <legend className="sr-only">お米の量を選択</legend>
             <div className="space-y-2">
-              {RICE_PRODUCTS.map((product) => {
+              {products.map((product) => {
                 const inputId = fieldId(`rice-${product.id}`);
                 const checked = form.productId === product.id;
                 return (
@@ -412,9 +465,8 @@ export function FareCalculator() {
           </div>
 
           <p className="mt-4 rounded-lg bg-accent-50 p-3 text-xs leading-relaxed text-navy-900">
-            「箱込み」は箱を含んだ発送時の重量です。宅急便のサイズ区分はこの重量から判定しています。
-            箱が大きい場合は、実際には 1
-            つ上のサイズ区分になり、送料が上がることがあります。複数個の場合は、すべて同じ量・同じ配送先として計算します。
+            重さはお米そのものの重さです（箱の重さを含みません）。送料は量ごとに使う箱の大きさで決まります。1
+            キロは宅急便コンパクトのため、送料とは別に箱代がかかります。複数個の場合は、すべて同じ量・同じ配送先として計算します。
           </p>
         </section>
 
@@ -452,7 +504,12 @@ export function FareCalculator() {
         )}
       </section>
 
-      {selectedPrefecture && <RicePriceTable destination={selectedPrefecture} />}
+      {selectedPrefecture && (
+        <RicePriceTable
+          destination={selectedPrefecture}
+          variety={form.variety}
+        />
+      )}
 
       <p className="text-xs text-navy-700">
         発送元は{ORIGIN.label}（運賃区分：関東発）に固定されています。

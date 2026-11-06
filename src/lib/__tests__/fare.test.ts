@@ -71,14 +71,27 @@ describe("公式運賃との照合（関東発・税込・現金）", () => {
 });
 
 describe("quoteShipping", () => {
-  it("栃木県内（同一地域）宛て 80 サイズは 940 円ではなく 1,230 円", () => {
+  it("栃木県内（発地と同一県）宛て 80 サイズは同一都道府県内運賃の 1,090 円", () => {
     const result = quoteShipping(baseInput({ destinationPrefectureCode: "09" }));
     expect(result.status).toBe("ok");
     if (result.status === "ok") {
       expect(result.destination.name).toBe("栃木県");
       expect(result.size).toBe(80);
+      expect(result.samePrefecture).toBe(true);
+      expect(result.unitFareYen).toBe(1090);
+      expect(result.totalFareYen).toBe(1090);
+    }
+  });
+
+  it("同一都道府県内運賃を無効にすると地帯別の 1,230 円になる", () => {
+    const result = quoteShipping(
+      baseInput({ destinationPrefectureCode: "09" }),
+      { samePrefectureFares: null },
+    );
+    expect(result.status).toBe("ok");
+    if (result.status === "ok") {
+      expect(result.samePrefecture).toBe(false);
       expect(result.unitFareYen).toBe(1230);
-      expect(result.totalFareYen).toBe(1230);
     }
   });
 

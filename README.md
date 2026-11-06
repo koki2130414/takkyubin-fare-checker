@@ -112,54 +112,78 @@ Vercel はルート配信なので `NEXT_PUBLIC_BASE_PATH` の設定は不要で
 
 ## お米の選択肢の更新方法
 
-注文フォームの選択肢や価格を変えたときは、**`src/data/rice-products.ts` の
-`RICE_PRODUCTS`** だけを更新します。
+値段や選択肢を変えたときは、**`src/data/rice-products.ts` の `RICE_PRODUCTS`** だけを
+更新します。出典は [にいみ農園「お米の値段一覧」](https://213nouen.com/prices) です。
 
 ```ts
 export const RICE_PRODUCTS: readonly RiceProduct[] = [
-  // 宅急便（箱込み重量からサイズ区分を判定）
-  { id: "5kg", label: "箱込み5キロ", service: "takkyubin", grossWeightKg: 5, priceYen: 2700 },
-  // 宅急便コンパクト（専用BOX。サイズ区分なし、運賃は地域だけで決まる）
-  { id: "1kg", label: "1キロ", service: "compact", grossWeightKg: 1, priceYen: 800 },
+  // 宅急便（使う箱の大きさをそのまま書く。重量からは推測しない）
+  {
+    id: "koshihikari-4_5kg",
+    variety: "koshihikari",
+    label: "4.5キロ",
+    priceYen: 2700,
+    shipping: { kind: "takkyubin", size: 80 },
+  },
+  // 宅急便コンパクト（専用BOX。サイズ区分なし、送料とは別に箱代がかかる）
+  {
+    id: "koshihikari-1kg",
+    variety: "koshihikari",
+    label: "1キロ",
+    priceYen: 800,
+    shipping: { kind: "compact" },
+  },
 ];
 ```
 
-- `service` は `"takkyubin"`（通常の宅急便）か `"compact"`（宅急便コンパクト）です
-- `grossWeightKg` は**発送時の重量**です。`service: "takkyubin"` のときだけ
-  サイズ区分の判定に使います（`src/lib/size.ts` の `judgeSizeByWeight`）。
-  `"compact"` では専用BOXを使うためサイズ区分がなく、運賃は配送先の地域だけで
-  決まります（`src/data/compact-fare-table.ts`）
-- 注文フォームの「※直接受け取り」の選択肢は配送しない（送料が発生しない）ため、
-  `RICE_PRODUCTS` には含めません
-- 選択肢を増やす場合は `id` が他と重複しないようにしてください
+- `label` は**お米そのものの重さ**です（箱の重さを含みません）
+- `shipping.size` は値段一覧ページに書かれている**箱の大きさ**をそのまま入れます。
+  重量から推測しないため、玄米30キロのように箱込みで 30kg を超えるものも
+  正しく 180 サイズで計算できます
+- `variety` は `"koshihikari"` か `"asahinoyume"` です。品種を増やすときは
+  `RICE_VARIETIES` にも追加してください
+- 農園でお受け取りの選択肢と、配送できない選択肢（あさひの夢の精米26キロ・玄米30キロ）は
+  送料が発生しないため収録していません
 - 価格を変えたら `RICE_PRODUCT_META.updatedOn` も更新してください
 - 期待値を持つテスト `src/lib/__tests__/rice.test.ts` も合わせて更新してください
+
+### 運賃データ
+
+| ファイル | 内容 |
+| --- | --- |
+| `src/data/fare-table.ts` | 宅急便の地帯別運賃（関東発）と、同一都道府県内運賃 |
+| `src/data/compact-fare-table.ts` | 宅急便コンパクトの運賃（関東発）と専用BOXの価格 |
+
+発送元の栃木県と同じ都道府県へのお届けには、地帯別運賃より安い
+**同一都道府県内運賃**（`SAME_PREFECTURE_FARES`）が自動で適用されます。
+宅急便コンパクトに同一都道府県内の割引はありません。
 
 ### 寸法が分かっている場合
 
 箱の寸法まで分かっている荷物は、`src/lib/fare.ts` の `quoteShipping`（寸法モード）で
-3 辺合計と重量の大きい方を採用して判定できます。現在の画面ではお米の量からの判定
+3 辺合計と重量の大きい方を採用して判定できます。現在の画面ではお米の選択肢からの計算
 （`quoteRiceShipping`）のみを使っていますが、ロジックとテストは残してあります。
 
 ## 料金データの公式出典
 
 | 種類 | URL |
 | --- | --- |
-| 運賃一覧表（宅急便・宅急便コンパクト共通） | https://www.kuronekoyamato.co.jp/ytc/search/estimate/ichiran.html |
+| 運賃一覧表（宅急便・宅急便コンパクト・同一都道府県内運賃） | https://www.kuronekoyamato.co.jp/ytc/search/estimate/ichiran.html |
 | サイズ規格 | https://www.kuronekoyamato.co.jp/ytc/customer/send/search/payment/size/ |
 | 宅急便コンパクト | https://www.kuronekoyamato.co.jp/ytc/customer/send/services/compact/ |
+| お米の価格（にいみ農園） | https://213nouen.com/prices |
 
 ## 現在の料金データ
 
 - **適用開始日：2025 年 10 月 1 日**（2025 年 10 月 1 日実施の届出運賃改定）
-- **確認日：2026 年 9 月 1 日**
+- **確認日：2026 年 11 月 6 日**
 - 種別：宅急便 発払い・現金でのお支払いの基本運賃（税込）
 - 収録範囲：**関東発**の 1 行のみ（発送元が栃木県下野市＝関東地帯に固定のため）
 - 対応地域：全 47 都道府県（沖縄県を含む）
 
 ### 宅急便コンパクト（1キロの選択肢で使用）
 
-- **確認日：2026 年 10 月 29 日**（公式の運賃一覧表に適用開始日の記載がないため未掲載）
+- **確認日：2026 年 11 月 6 日**（公式の運賃一覧表に適用開始日の記載がないため未掲載）
 - 種別：宅急便コンパクト 発払い・現金でのお支払いの運賃（税込）
 - サイズ区分はなく、運賃は配送先の地域だけで決まります
 - 専用BOX（税込 70 円）は**サイトの表示金額に含めていません**

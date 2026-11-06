@@ -1,23 +1,48 @@
 /**
- * 注文フォーム「ご希望のお米の量」の選択肢データ。
+ * にいみ農園「お米の値段一覧」のうち、配送でお届けする選択肢のデータ。
  *
  * ============================================================================
- * 商品の追加・削除・価格改定は、このファイルの RICE_PRODUCTS だけを更新します。
+ * 品種の追加・価格改定は、このファイルの RICE_PRODUCTS だけを更新します。
  * 更新手順は README.md の「お米の選択肢の更新方法」を参照してください。
  * ============================================================================
  *
- * 配送サービスは選択肢ごとに異なります。
- *  - takkyubin … 通常の宅急便。`grossWeightKg`（箱込みの発送重量）から
- *                サイズ区分を判定します（src/lib/size.ts の judgeSizeByWeight）。
- *  - compact   … 宅急便コンパクト。専用BOXを使うためサイズ区分はなく、
- *                運賃は配送先の地域だけで決まります。
+ * 出典: https://213nouen.com/prices
  *
- * 注文フォームにある「※直接受け取り」の選択肢は配送しないため、
- * ここには含めていません（送料が発生しないため）。
+ * 重さの表記は「お米そのものの重さ」です（箱の重さを含みません）。
+ * 送料は箱の大きさで決まるため、各選択肢に使う箱を shipping に明示しています。
+ * 重量から推測せず、値段一覧ページに書かれている箱の大きさをそのまま持ちます。
+ *
+ * 農園でお受け取りの選択肢は送料がかからないため、ここには含めていません。
  */
 
-/** 配送に使うサービス */
-export type ShippingService = "takkyubin" | "compact";
+import type { TakkyubinSize } from "./fare-table";
+
+export type RiceVariety = "koshihikari" | "asahinoyume";
+
+export type VarietyInfo = {
+  readonly id: RiceVariety;
+  readonly label: string;
+  /** 品種ごとの補足（配送できない選択肢がある場合など） */
+  readonly note?: string;
+};
+
+export const RICE_VARIETIES: readonly VarietyInfo[] = [
+  { id: "koshihikari", label: "コシヒカリ" },
+  {
+    id: "asahinoyume",
+    label: "あさひの夢",
+    note: "精米26キロ・玄米30キロは配送を承っておりません（農園でのお受け取りのみ）。",
+  },
+];
+
+/** 配送に使うサービスと箱 */
+export type ProductShipping =
+  /** 通常の宅急便。size はそのまま運賃表のサイズ区分。 */
+  | { readonly kind: "takkyubin"; readonly size: TakkyubinSize }
+  /** 宅急便コンパクト。専用BOXを使うためサイズ区分はない。 */
+  | { readonly kind: "compact" };
+
+export type ShippingService = ProductShipping["kind"];
 
 export const SHIPPING_SERVICE_LABELS: Readonly<
   Record<ShippingService, string>
@@ -27,73 +52,115 @@ export const SHIPPING_SERVICE_LABELS: Readonly<
 };
 
 export type RiceProduct = {
-  /** 内部で使う識別子（フォームの選択肢と 1 対 1） */
+  /** 内部で使う識別子 */
   readonly id: string;
-  /** 画面に出す名前 */
+  readonly variety: RiceVariety;
+  /** 画面に出す名前（お米そのものの重さ） */
   readonly label: string;
-  /** 配送に使うサービス */
-  readonly service: ShippingService;
-  /**
-   * 発送時の重量（kg）。
-   * service が "takkyubin" のときだけサイズ区分の判定に使います。
-   * "compact" では運賃計算に使いませんが、目安として保持します。
-   */
-  readonly grossWeightKg: number;
-  /** 商品代金（円）。送料は含まない。 */
+  /** お米の代金（円）。送料・箱代は含まない。 */
   readonly priceYen: number;
-  /** 補足（「精米すると26キロくらい」など）。不要なら省略。 */
+  /** 配送に使うサービスと箱の大きさ */
+  readonly shipping: ProductShipping;
+  /** 補足。不要なら省略。 */
   readonly note?: string;
 };
 
 export const RICE_PRODUCTS: readonly RiceProduct[] = [
+  // ---- コシヒカリ ----
   {
-    id: "1kg",
+    id: "koshihikari-1kg",
+    variety: "koshihikari",
     label: "1キロ",
-    service: "compact",
-    grossWeightKg: 1,
     priceYen: 800,
+    shipping: { kind: "compact" },
+    note: "お試しや贈り物に",
   },
   {
-    id: "5kg",
-    label: "箱込み5キロ",
-    service: "takkyubin",
-    grossWeightKg: 5,
+    id: "koshihikari-3kg",
+    variety: "koshihikari",
+    label: "3キロ",
+    priceYen: 1800,
+    shipping: { kind: "takkyubin", size: 80 },
+  },
+  {
+    id: "koshihikari-4_5kg",
+    variety: "koshihikari",
+    label: "4.5キロ",
     priceYen: 2700,
+    shipping: { kind: "takkyubin", size: 80 },
   },
   {
-    id: "10kg",
-    label: "箱込み10キロ",
-    service: "takkyubin",
-    grossWeightKg: 10,
+    id: "koshihikari-9_5kg",
+    variety: "koshihikari",
+    label: "9.5キロ",
     priceYen: 5400,
+    shipping: { kind: "takkyubin", size: 100 },
   },
   {
-    id: "30kg",
-    label: "箱込み30キロ",
-    service: "takkyubin",
-    grossWeightKg: 30,
-    priceYen: 16200,
-    note: "精米すると26キロくらいになります",
+    id: "koshihikari-seimai26kg",
+    variety: "koshihikari",
+    label: "精米26キロ",
+    priceYen: 14000,
+    shipping: { kind: "takkyubin", size: 180 },
+    note: "玄米30キロ分を、ご注文をいただいてから精米してお届けします",
   },
   {
-    id: "genmai30kg",
-    label: "箱込み玄米30キロ",
-    service: "takkyubin",
-    grossWeightKg: 30,
-    priceYen: 13000,
+    id: "koshihikari-genmai30kg",
+    variety: "koshihikari",
+    label: "玄米30キロ",
+    priceYen: 13500,
+    shipping: { kind: "takkyubin", size: 180 },
+    note: "精米せず、玄米のままお届けします",
+  },
+
+  // ---- あさひの夢（精米26キロ・玄米30キロは配送不可のため未収録）----
+  {
+    id: "asahinoyume-3kg",
+    variety: "asahinoyume",
+    label: "3キロ",
+    priceYen: 1380,
+    shipping: { kind: "takkyubin", size: 80 },
+  },
+  {
+    id: "asahinoyume-4_5kg",
+    variety: "asahinoyume",
+    label: "4.5キロ",
+    priceYen: 2070,
+    shipping: { kind: "takkyubin", size: 80 },
+  },
+  {
+    id: "asahinoyume-9_5kg",
+    variety: "asahinoyume",
+    label: "9.5キロ",
+    priceYen: 4200,
+    shipping: { kind: "takkyubin", size: 100 },
   },
 ];
 
 export const RICE_PRODUCT_META = {
-  /** 選択肢の出どころ */
-  source: "注文フォーム「ご希望のお米の量」",
+  /** 選択肢と価格の出どころ */
+  source: "にいみ農園 お米の値段一覧",
+  sourceUrl: "https://213nouen.com/prices",
   /** このデータを更新した日（YYYY-MM-DD） */
-  updatedOn: "2026-10-29",
+  updatedOn: "2026-11-06",
 } as const;
 
 const BY_ID = new Map(RICE_PRODUCTS.map((product) => [product.id, product]));
+const VARIETY_BY_ID = new Map(RICE_VARIETIES.map((v) => [v.id, v]));
 
 /** id からお米の選択肢を引く。見つからなければ null。 */
 export function findRiceProduct(id: string): RiceProduct | null {
   return BY_ID.get(id) ?? null;
+}
+
+/** 品種情報を引く。見つからなければ null。 */
+export function findVariety(id: string): VarietyInfo | null {
+  return VARIETY_BY_ID.get(id as RiceVariety) ?? null;
+}
+
+/** 指定した品種の、配送できる選択肢を返す。 */
+export function productsOfVariety(
+  variety: RiceVariety,
+): readonly RiceProduct[] {
+  return RICE_PRODUCTS.filter((product) => product.variety === variety);
 }

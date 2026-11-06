@@ -52,7 +52,7 @@ export const FARE_TABLE_META: FareTableMeta = {
   sizeSourceUrl:
     "https://www.kuronekoyamato.co.jp/ytc/customer/send/search/payment/size/",
   effectiveFrom: "2025-10-01",
-  checkedOn: "2026-09-01",
+  checkedOn: "2026-11-06",
   fareKind: "宅急便 発払い・現金でのお支払いの基本運賃",
   taxIncluded: true,
   note: "割引（持込割・クロネコメンバー割・複数口減額など）およびキャッシュレス決済運賃は含みません。",
@@ -75,6 +75,24 @@ const KANTO_ORIGIN: Readonly<Partial<Record<RegionCode, FareRow>>> = {
   shikoku: { 60: 1190, 80: 1480, 100: 1790, 120: 2310, 140: 2930, 160: 3320, 180: 4900, 200: 6220 },
   kyushu: { 60: 1460, 80: 1740, 100: 2050, 120: 2610, 140: 3250, 160: 3630, 180: 5220, 200: 6540 },
   okinawa: { 60: 1460, 80: 2070, 100: 2710, 120: 3360, 140: 4030, 160: 4680, 180: 7210, 200: 8860 },
+};
+
+/**
+ * 同一都道府県内運賃（税込）。
+ * 発地と着地が同じ都道府県のときに適用され、地帯別の運賃より安くなります。
+ * 発地に関わらず同額です（沖縄県発は対象外）。
+ *
+ * 宅急便コンパクトには同一都道府県内の割引運賃はありません。
+ */
+export const SAME_PREFECTURE_FARES: FareRow = {
+  60: 790,
+  80: 1090,
+  100: 1410,
+  120: 1730,
+  140: 2090,
+  160: 2410,
+  180: 3030,
+  200: 3690,
 };
 
 /**

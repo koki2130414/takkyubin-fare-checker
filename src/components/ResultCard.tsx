@@ -80,6 +80,23 @@ function PriceBreakdown({ quote }: { readonly quote: ShippingQuoteOk }) {
             {formatYen(quote.totalFareYen)}
           </p>
         </div>
+
+        {quote.unitBoxYen > 0 && (
+          <div className="flex items-baseline justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-navy-900">
+                <span aria-hidden="true">＋ </span>箱代
+              </p>
+              <p className="text-xs text-navy-700">
+                宅急便コンパクト専用BOX {formatYen(quote.unitBoxYen)} ×{" "}
+                {quote.quantity} 個
+              </p>
+            </div>
+            <p className="shrink-0 text-xl font-bold text-navy-900 tabular-nums sm:text-2xl">
+              {formatYen(quote.totalBoxYen)}
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="mt-3 border-t-2 border-navy-200 pt-3 text-center">
@@ -187,16 +204,12 @@ export function ResultCard({ quote }: Props) {
             value={`${formatNumber(quote.dimensionSumCm, 2)} cm`}
           />
         )}
-        <Row
-          label={
-            isRiceMode
-              ? quote.service === "compact"
-                ? "お米の量"
-                : "箱込みの重量"
-              : "入力重量"
-          }
-          value={`${formatNumber(quote.weightKg, 3)} kg`}
-        />
+        {quote.weightKg !== null && (
+          <Row
+            label="入力重量"
+            value={`${formatNumber(quote.weightKg, 3)} kg`}
+          />
+        )}
         {quote.product && (
           <Row
             label="お米の代金（1 個あたり）"
@@ -204,14 +217,27 @@ export function ResultCard({ quote }: Props) {
           />
         )}
         <Row label="1 個あたりの税込送料" value={formatYen(quote.unitFareYen)} />
+        {quote.unitBoxYen > 0 && (
+          <Row
+            label="1 個あたりの箱代"
+            value={formatYen(quote.unitBoxYen)}
+          />
+        )}
         <Row label="個数" value={`${quote.quantity} 個`} />
         {quote.productSubtotalYen !== null && (
           <Row label="お米の代金 合計" value={formatYen(quote.productSubtotalYen)} />
         )}
         <Row label="税込送料合計" value={formatYen(quote.totalFareYen)} />
+        {quote.totalBoxYen > 0 && (
+          <Row label="箱代 合計" value={formatYen(quote.totalBoxYen)} />
+        )}
         {quote.grandTotalYen !== null && (
           <Row
-            label="お支払い総額（お米＋送料）"
+            label={
+              quote.totalBoxYen > 0
+                ? "お支払い総額（お米＋送料＋箱代）"
+                : "お支払い総額（お米＋送料）"
+            }
             value={formatYen(quote.grandTotalYen)}
           />
         )}
@@ -226,15 +252,19 @@ export function ResultCard({ quote }: Props) {
 
       <div className="space-y-2 border-t border-navy-100 bg-navy-50 px-4 py-3 text-xs leading-relaxed text-navy-700">
         <p className="font-bold">送料は発払い・現金でのお支払いの運賃による目安です。</p>
-        {quote.basis === "weight" && (
+        {quote.basis === "product" && (
           <p>
-            サイズ区分は箱込みの重量から判定しています。箱が大きい場合は、実際には
-            1 つ上のサイズ区分になり、送料が上がることがあります。
+            サイズ区分は、お米の量ごとに使う箱の大きさで決まります。
+          </p>
+        )}
+        {quote.samePrefecture && (
+          <p>
+            発送元と同じ栃木県内へのお届けのため、地帯別の運賃より安い「同一都道府県内運賃」を適用しています。
           </p>
         )}
         {quote.service === "compact" && (
           <p>
-            宅急便コンパクトは専用BOXでお届けするサービスで、サイズ区分はありません。運賃はお届け先の地域だけで決まります。
+            宅急便コンパクトは専用BOXでお届けするサービスで、サイズ区分はありません。運賃はお届け先の地域だけで決まり、送料とは別に箱代がかかります。
           </p>
         )}
         <p>

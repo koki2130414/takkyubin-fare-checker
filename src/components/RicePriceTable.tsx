@@ -1,17 +1,23 @@
-import { RICE_PRODUCTS } from "@/data/rice-products";
+import {
+  findVariety,
+  productsOfVariety,
+  type RiceVariety,
+} from "@/data/rice-products";
 import type { Prefecture } from "@/data/prefectures";
 import { calculateRiceShipping } from "@/lib/fare";
 import { formatYen } from "@/lib/format";
 
 type Props = {
   readonly destination: Prefecture;
+  readonly variety: RiceVariety;
 };
 
 const CELL = "border border-navy-100 px-1.5 py-2 sm:px-3";
 
 /** 選んだお届け先について、全ての量の「お米代金・送料・合計」を並べた一覧 */
-export function RicePriceTable({ destination }: Props) {
-  const rows = RICE_PRODUCTS.map((product) => ({
+export function RicePriceTable({ destination, variety }: Props) {
+  const varietyLabel = findVariety(variety)?.label ?? "";
+  const rows = productsOfVariety(variety).map((product) => ({
     product,
     quote: calculateRiceShipping({ destination, product, quantity: 1 }),
   }));
@@ -22,7 +28,7 @@ export function RicePriceTable({ destination }: Props) {
       className="rounded-xl border border-navy-200 bg-white p-4 shadow-sm sm:p-5"
     >
       <h2 id="price-table-heading" className="text-lg font-bold text-navy-900">
-        {destination.name}へお届けの場合の料金一覧
+        {varietyLabel}を{destination.name}へお届けの場合
       </h2>
       <p className="mt-1 text-sm text-navy-700">
         1 個あたりの金額です。どの量にするか比べるときにお使いください。
@@ -38,7 +44,7 @@ export function RicePriceTable({ destination }: Props) {
               <th scope="col" className={`${CELL} text-left`}>
                 お米の量
                 <span className="block text-[0.65rem] font-normal text-navy-700 sm:text-xs">
-                  5キロ以上は箱込み
+                  お米の重さ
                 </span>
               </th>
               <th scope="col" className={`${CELL} text-right`}>
@@ -56,9 +62,7 @@ export function RicePriceTable({ destination }: Props) {
             {rows.map(({ product, quote }) => (
               <tr key={product.id}>
                 <th scope="row" className={`${CELL} text-left font-bold`}>
-                  <span className="whitespace-nowrap">
-                    {product.label.replace("箱込み", "")}
-                  </span>
+                  <span className="whitespace-nowrap">{product.label}</span>
                   {/* 配送方法・サイズは幅の狭い画面では省略（結果カードに表示される） */}
                   <span className="hidden text-xs font-normal whitespace-nowrap text-navy-700 sm:block">
                     {quote.status !== "ok"
@@ -78,7 +82,9 @@ export function RicePriceTable({ destination }: Props) {
                   {formatYen(product.priceYen)}
                 </td>
                 <td className={`${CELL} text-right whitespace-nowrap tabular-nums`}>
-                  {quote.status === "ok" ? formatYen(quote.unitFareYen) : "—"}
+                  {quote.status === "ok"
+                    ? formatYen(quote.unitFareYen + quote.unitBoxYen)
+                    : "—"}
                 </td>
                 <td
                   className={`${CELL} text-right font-bold whitespace-nowrap tabular-nums`}
@@ -94,9 +100,8 @@ export function RicePriceTable({ destination }: Props) {
       </div>
 
       <p className="mt-3 text-xs leading-relaxed text-navy-700">
-        送料は発払い・現金でのお支払いの運賃（税込）による目安です。宅急便のサイズ区分は箱込みの重量から
-        判定しているため、箱が大きい場合は 1 つ上のサイズになることがあります。1
-        キロは宅急便コンパクト（専用BOX）でのお届けです。
+        送料は発払い・現金でのお支払いの運賃（税込）による目安です。1
+        キロは宅急便コンパクトのため、合計には箱代（税込70円）を含めています。
       </p>
     </section>
   );
